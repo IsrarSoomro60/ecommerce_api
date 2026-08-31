@@ -3,6 +3,9 @@ from rest_framework.generics import CreateAPIView, RetrieveAPIView
 from rest_framework.views import APIView, Response
 from .serializers import RegisterSerializer
 from rest_framework.permissions import IsAuthenticated
+from rest_framework_simplejwt.tokens import RefreshToken
+from .serializers import LogoutSerializer
+import rest_framework.status as status
 
 
 class RegisterView(CreateAPIView):
@@ -15,13 +18,6 @@ class MeView(RetrieveAPIView):
 
     def get_object(self):
         return self.request.user
-
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from rest_framework_simplejwt.tokens import RefreshToken
-from .serializers import LogoutSerializer
-
 
 class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
