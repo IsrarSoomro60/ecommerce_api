@@ -1,13 +1,11 @@
-from django.shortcuts import render
-
-# Create your views here.
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
+from core.mixins import StandardResponseMixin
 from .models import Review
 from .serializers import ReviewSerializer
 
 
-class ReviewViewSet(ModelViewSet):
+class ReviewViewSet(StandardResponseMixin, ModelViewSet):
     serializer_class = ReviewSerializer
     filterset_fields = ['product', 'rating']
 
@@ -20,7 +18,6 @@ class ReviewViewSet(ModelViewSet):
         return [IsAuthenticatedOrReadOnly()]
 
     def perform_update(self, serializer):
-        # Only allow the review's own author to edit it
         if serializer.instance.user != self.request.user:
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied("You can only edit your own reviews.")
