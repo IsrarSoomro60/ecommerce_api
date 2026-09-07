@@ -5,11 +5,13 @@ from orders.models import OrderItem
 
 class ReviewSerializer(serializers.ModelSerializer):
     username = serializers.CharField(source='user.username', read_only=True)
+    rating = serializers.IntegerField(min_value=1, max_value=5)
 
     class Meta:
         model = Review
         fields = ('id', 'product', 'username', 'rating', 'comment', 'created_at', 'updated_at')
         read_only_fields = ('user',)
+
 
     def validate(self, data):
         request = self.context['request']

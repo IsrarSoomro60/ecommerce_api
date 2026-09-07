@@ -1,13 +1,12 @@
-from django.shortcuts import render
-
-# Create your views here.
 from rest_framework.views import APIView
-from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
+from core.responses import success_response, error_response
+from rest_framework.serializers import Serializer, IntegerField
 from .models import Cart, CartItem
 from .serializers import CartSerializer, AddToCartSerializer
 from products.models import Product
+from drf_spectacular.utils import extend_schema, OpenApiExample
 
 
 class CartView(APIView):
@@ -16,12 +15,13 @@ class CartView(APIView):
     def get(self, request):
         cart, created = Cart.objects.get_or_create(user=request.user)
         serializer = CartSerializer(cart)
-        return Response(serializer.data)
+        return success_response(data=serializer.data, message="Cart fetched successfully")
 
 
 class AddToCartView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(request=AddToCartSerializer)
     def post(self, request):
         serializer = AddToCartSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -40,35 +40,35 @@ class AddToCartView(APIView):
             cart_item.quantity += quantity
             cart_item.save()
 
-        return Response(
-            {'success': True, 'message': 'Item added to cart'},
-            status=status.HTTP_201_CREATED
-        )
+        return success_response(message="Item added to cart", status_code=status.HTTP_201_CREATED)
 
+
+class UpdateQuantitySerializer(Serializer):
+    quantity = IntegerField(min_value=1)
 
 class UpdateCartItemView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(request=UpdateQuantitySerializer)
     def patch(self, request, item_id):
         try:
             cart_item = CartItem.objects.get(id=item_id, cart__user=request.user)
         except CartItem.DoesNotExist:
-            return Response(
-                {'success': False, 'message': 'Cart item not found'},
-                status=status.HTTP_404_NOT_FOUND
-            )
+            return error_response(message="Cart item not found", status_code=status.HTTP_404_NOT_FOUND)
 
         quantity = request.data.get('quantity')
-        if quantity is None or int(quantity) < 1:
-            return Response(
-                {'success': False, 'message': 'Valid quantity is required'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        try:
+            quantity = int(quantity)
+        except (TypeError, ValueError):
+            return error_response(message="Quantity must be a valid number", status_code=status.HTTP_400_BAD_REQUEST)
 
-        cart_item.quantity = int(quantity)
+        if quantity < 1:
+            return error_response(message="Quantity must be at least 1", status_code=status.HTTP_400_BAD_REQUEST)
+
+        cart_item.quantity = quantity
         cart_item.save()
 
-        return Response({'success': True, 'message': 'Quantity updated'})
+        return success_response(message="Quantity updated")
 
 
 class RemoveCartItemView(APIView):
@@ -77,11 +77,9 @@ class RemoveCartItemView(APIView):
     def delete(self, request, item_id):
         try:
             cart_item = CartItem.objects.get(id=item_id, cart__user=request.user)
+            
         except CartItem.DoesNotExist:
-            return Response(
-                {'success': False, 'message': 'Cart item not found'},
-                status=status.HTTP_404_NOT_FOUND
-            )
+            return error_response(message="Cart item not found", status_code=status.HTTP_404_NOT_FOUND)
 
         cart_item.delete()
-        return Response({'success': True, 'message': 'Item removed from cart'})
+        return success_response(message="Item removed from cart")

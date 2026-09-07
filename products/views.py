@@ -12,7 +12,7 @@ class CategoryViewSet(StandardResponseMixin, ModelViewSet):
 
 
 class ProductViewSet(StandardResponseMixin, ModelViewSet):
-    queryset = Product.objects.filter(is_active=True)
+    queryset = Product.objects.filter(is_active=True).order_by('-created_at')
     serializer_class = ProductSerializer
     permission_classes = [IsAdminOrStaffOrReadOnly]
     filterset_fields = ['category', 'is_active']

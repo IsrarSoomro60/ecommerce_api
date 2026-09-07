@@ -7,3 +7,11 @@ def success_response(data=None, message="Success", status_code=200):
         'message': message,
         'data': data
     }, status=status_code)
+
+
+def error_response(message="Something went wrong", errors=None, status_code=400):
+    return Response({
+        'success': False,
+        'message': message,
+        'errors': errors
+    }, status=status_code)
