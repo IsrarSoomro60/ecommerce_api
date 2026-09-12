@@ -33,7 +33,7 @@ class UpdateOrderStatusView(APIView):
             raise PermissionDenied("You do not have permission to modify this order.")
 
         if not is_staff_or_admin:
-            # Customers can only cancel their OWN order, and only if still pending
+            
             if new_status != 'cancelled':
                 raise PermissionDenied("You can only cancel your own orders.")
             if order.status != 'pending':
@@ -44,7 +44,7 @@ class UpdateOrderStatusView(APIView):
 
         with transaction.atomic():
             if new_status == 'cancelled' and order.status != 'cancelled':
-                # Restore stock since the order is being cancelled
+                
                 for item in order.items.all():
                     item.product.stock += item.quantity
                     item.product.save()

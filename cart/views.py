@@ -30,6 +30,16 @@ class AddToCartView(APIView):
         product = Product.objects.get(id=serializer.validated_data['product_id'])
         quantity = serializer.validated_data['quantity']
 
+        existing_item = CartItem.objects.filter(cart=cart, product=product).first()
+        current_qty_in_cart = existing_item.quantity if existing_item else 0
+
+        if current_qty_in_cart + quantity > product.stock:
+            return error_response(
+                message=f"Only {product.stock} units of '{product.name}' are available "
+                        f"({current_qty_in_cart} already in your cart).",
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+
         cart_item, created = CartItem.objects.get_or_create(
             cart=cart,
             product=product,
@@ -41,7 +51,6 @@ class AddToCartView(APIView):
             cart_item.save()
 
         return success_response(message="Item added to cart", status_code=status.HTTP_201_CREATED)
-
 
 class UpdateQuantitySerializer(Serializer):
     quantity = IntegerField(min_value=1)
@@ -65,11 +74,16 @@ class UpdateCartItemView(APIView):
         if quantity < 1:
             return error_response(message="Quantity must be at least 1", status_code=status.HTTP_400_BAD_REQUEST)
 
+        if quantity > cart_item.product.stock:
+            return error_response(
+                message=f"Only {cart_item.product.stock} units of '{cart_item.product.name}' are available.",
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+
         cart_item.quantity = quantity
         cart_item.save()
 
         return success_response(message="Quantity updated")
-
 
 class RemoveCartItemView(APIView):
     permission_classes = [IsAuthenticated]
